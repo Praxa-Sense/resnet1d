@@ -39,6 +39,7 @@ class MyConv1dPadSame(nn.Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.groups = groups
+        # print(groups)
         self.conv = torch.nn.Conv1d(
             in_channels=self.in_channels, 
             out_channels=self.out_channels, 
@@ -357,7 +358,8 @@ class Net1D(nn.Module):
                 ratio=self.ratio, 
                 kernel_size=self.kernel_size, 
                 stride=self.stride, 
-                groups=out_channels//self.groups_width, 
+                # groups=out_channels//self.groups_width,
+                groups=out_channels // self.groups_width,
                 i_stage=i_stage,
                 m_blocks=m_blocks, 
                 use_bn=self.use_bn, 

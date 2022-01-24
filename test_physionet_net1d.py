@@ -6,60 +6,58 @@ Shenda Hong, Nov 2019
 
 import numpy as np
 from collections import Counter
+
+from torchsummary import summary
 from tqdm import tqdm
-from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
 
-from util import read_data_physionet_2, read_data_physionet_4, preprocess_physionet
+from util import read_data_physionet_4
 from net1d import Net1D, MyDataset
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
-from torchsummary import summary
 
 if __name__ == "__main__":
 
-    is_debug = True
+    is_debug = False
     
     batch_size = 32
-    if is_debug:
-        writer = SummaryWriter('/nethome/shong375/log/resnet1d/challenge2017/debug')
-    else:
-        writer = SummaryWriter('/nethome/shong375/log/resnext1d/challenge2017/layer98')
+    writer = SummaryWriter('runs/challenge2017/net1d')
 
     # make data
     # preprocess_physionet() ## run this if you have no preprocessed data yet
     # (sample, channel, length)
-    X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_4()
-    print(X_train.shape, Y_train.shape)
-    dataset = MyDataset(X_train, Y_train)
-    dataset_test = MyDataset(X_test, Y_test)
-    dataloader = DataLoader(dataset, batch_size=batch_size)
-    dataloader_test = DataLoader(dataset_test, batch_size=batch_size, drop_last=False)
-    
+
     # make model
     device_str = "cuda"
     device = torch.device(device_str if torch.cuda.is_available() else "cpu")
 
     model = Net1D(
-        in_channels=1, 
-        base_filters=256, 
-        ratio=1.0, 
-        filter_mul_list=[1,2,2,4,4,8,8], 
-        m_blocks_list=[2,2,2,2,2,2,2], 
-        kernel_size=16, 
-        stride=2, 
-        groups=32,
-        verbose=True, 
+        in_channels=1,
+        base_filters=64,
+        ratio=1.0,
+        filter_list=[64, 160, 160, 400, 400, 1024, 1024],
+        m_blocks_list=[2, 2, 2, 3, 3, 4, 4],
+        kernel_size=16,
+        stride=2,
+        groups_width=16,
+        verbose=False,
         n_classes=4)
     model.to(device)
+    print(model)
 
+    X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_4()
+    read
+    device_str = "cuda"
+    device = torch.device(device_str if torch.cuda.is_available() else "cpu")
     summary(model, (X_train.shape[1], X_train.shape[2]), device=device_str)
     exit()
+    dataset = MyDataset(X_train, Y_train)
+    dataset_test = MyDataset(X_test, Y_test)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+    dataloader_test = DataLoader(dataset_test, batch_size=batch_size, drop_last=False)
 
     # train and test
     model.verbose = False
@@ -119,3 +117,4 @@ if __name__ == "__main__":
         writer.add_scalar('F1/label_1', tmp_report['1']['f1-score'], _)
         writer.add_scalar('F1/label_2', tmp_report['2']['f1-score'], _)
         writer.add_scalar('F1/label_3', tmp_report['3']['f1-score'], _)
+

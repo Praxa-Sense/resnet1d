@@ -11,7 +11,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
 
-from util import read_data_physionet_2_clean, read_data_physionet_2_clean_federated
+from util import read_data_physionet_2_clean, read_data_physionet_2_clean_federated, read_data_physionet_4
 from acnn1d import ACNN, MyDataset
 
 import torch
@@ -21,19 +21,19 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from tensorboardX import SummaryWriter
 
+from torchsummary import summary
+
 if __name__ == "__main__":
 
     is_debug = False
     
-    batch_size = 128
-    if is_debug:
-        writer = SummaryWriter('/nethome/shong375/log/acnn1d/challenge2017/debug')
-    else:
-        writer = SummaryWriter('/nethome/shong375/log/acnn1d/challenge2017/new_novote_cleandata_rerunx')
+    batch_size = 32
+    writer = SummaryWriter('runs/challenge2017/acnn')
 
     # make data
     print('start')
-    X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_2_clean(window_size=3000, stride=500)
+    # X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_2_clean(window_size=3000, stride=500)
+    X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_4()
     print(X_train.shape, Y_train.shape)
     dataset = MyDataset(X_train, Y_train)
     dataset_test = MyDataset(X_test, Y_test)
@@ -49,9 +49,11 @@ if __name__ == "__main__":
         att_channels=16,
         n_len_seg=50, 
         verbose=True,
-        n_classes=2,
+        n_classes=4,
         device=device)
     model.to(device)
+
+    summary(model, (X_train.shape[1], X_train.shape[2]), device=device_str)
 
     ## look model
     prog_iter = tqdm(dataloader, desc="init", leave=False)
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
     loss_func = torch.nn.CrossEntropyLoss()
 
-    n_epoch = 200
+    n_epoch = 50
     step = 0
     prev_f1 = 0
     for _ in tqdm(range(n_epoch), desc="epoch", leave=False):
@@ -102,7 +104,8 @@ if __name__ == "__main__":
                 all_pred_prob.append(pred.cpu().data.numpy())
         all_pred_prob = np.concatenate(all_pred_prob)
         all_pred = np.argmax(all_pred_prob, axis=1)
-        ## classification report
+
+        # classification report
         tmp_report = classification_report(Y_test, all_pred, output_dict=True)
         print(confusion_matrix(Y_test, all_pred))
         print(classification_report(Y_test, all_pred))

@@ -28,10 +28,10 @@ from torchsummary import summary
 def run_exp(base_filters, filter_list, m_blocks_list):
 
     dataset = MyDataset(X_train, Y_train)
-    dataset_val = MyDataset(X_test, Y_test)
+    # dataset_val = MyDataset(X_test, Y_test)
     dataset_test = MyDataset(X_test, Y_test)
     dataloader = DataLoader(dataset, batch_size=batch_size)
-    dataloader_val = DataLoader(dataset_val, batch_size=batch_size, drop_last=False)
+    # dataloader_val = DataLoader(dataset_val, batch_size=batch_size, drop_last=False)
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, drop_last=False)
     
     # make model
@@ -83,33 +83,34 @@ def run_exp(base_filters, filter_list, m_blocks_list):
         scheduler.step(_)
                     
         # val
-        model.eval()
-        prog_iter_val = tqdm(dataloader_val, desc="Validation", leave=False)
-        all_pred_prob = []
-        with torch.no_grad():
-            for batch_idx, batch in enumerate(prog_iter_val):
-                input_x, input_y = tuple(t.to(device) for t in batch)
-                pred = model(input_x)
-                all_pred_prob.append(pred.cpu().data.numpy())
-        all_pred_prob = np.concatenate(all_pred_prob)
-        all_pred = np.argmax(all_pred_prob, axis=1)
+        # model.eval()
+        # prog_iter_val = tqdm(dataloader_val, desc="Validation", leave=False)
+        # all_pred_prob = []
+        # with torch.no_grad():
+        #     for batch_idx, batch in enumerate(prog_iter_val):
+        #         input_x, input_y = tuple(t.to(device) for t in batch)
+        #         pred = model(input_x)
+        #         all_pred_prob.append(pred.cpu().data.numpy())
+        # all_pred_prob = np.concatenate(all_pred_prob)
+        # all_pred = np.argmax(all_pred_prob, axis=1)
+
         ## vote most common
-        final_pred = []
-        final_gt = []
-        for i_pid in np.unique(pid_val):
-            tmp_pred = all_pred[pid_val==i_pid]
-            tmp_gt = Y_val[pid_val==i_pid]
-            final_pred.append(Counter(tmp_pred).most_common(1)[0][0])
-            final_gt.append(Counter(tmp_gt).most_common(1)[0][0])
-        ## classification report
-        tmp_report = classification_report(final_gt, final_pred, output_dict=True)
-        print(confusion_matrix(final_gt, final_pred))
-        f1_score = (tmp_report['0']['f1-score'] + tmp_report['1']['f1-score'] + tmp_report['2']['f1-score'] + tmp_report['3']['f1-score'])/4
-        writer.add_scalar('F1/f1_score', f1_score, _)
-        writer.add_scalar('F1/label_0', tmp_report['0']['f1-score'], _)
-        writer.add_scalar('F1/label_1', tmp_report['1']['f1-score'], _)
-        writer.add_scalar('F1/label_2', tmp_report['2']['f1-score'], _)
-        writer.add_scalar('F1/label_3', tmp_report['3']['f1-score'], _)
+        # final_pred = []
+        # final_gt = []
+        # for i_pid in np.unique(pid_val):
+        #     tmp_pred = all_pred[pid_val==i_pid]
+        #     tmp_gt = Y_val[pid_val==i_pid]
+        #     final_pred.append(Counter(tmp_pred).most_common(1)[0][0])
+        #     final_gt.append(Counter(tmp_gt).most_common(1)[0][0])
+        # ## classification report
+        # tmp_report = classification_report(final_gt, final_pred, output_dict=True)
+        # print(confusion_matrix(final_gt, final_pred))
+        # f1_score = (tmp_report['0']['f1-score'] + tmp_report['1']['f1-score'] + tmp_report['2']['f1-score'] + tmp_report['3']['f1-score'])/4
+        # writer.add_scalar('F1/f1_score', f1_score, _)
+        # writer.add_scalar('F1/label_0', tmp_report['0']['f1-score'], _)
+        # writer.add_scalar('F1/label_1', tmp_report['1']['f1-score'], _)
+        # writer.add_scalar('F1/label_2', tmp_report['2']['f1-score'], _)
+        # writer.add_scalar('F1/label_3', tmp_report['3']['f1-score'], _)
                     
         # test
         model.eval()
@@ -146,13 +147,11 @@ if __name__ == "__main__":
     batch_size = 32
 
     is_debug = False
-    if is_debug:
-        writer = SummaryWriter('/nethome/shong375/log/regnet/challenge2017/debug')
-    else:
-        writer = SummaryWriter('/nethome/shong375/log/regnet/challenge2017/first')
+    writer = SummaryWriter('runs/challenge2017/regnet')
 
     # make data, (sample, channel, length)
-    X_train, X_val, X_test, Y_train, Y_val, Y_test, pid_val, pid_test = read_data_physionet_4_with_val()
+    # X_train, X_val, X_test, Y_train, Y_val, Y_test, pid_val, pid_test = read_data_physionet_4_with_val()
+    X_train, X_test, Y_train, Y_test, pid_test = read_data_physionet_4()
     print(X_train.shape, Y_train.shape)
 
     base_filters = 64

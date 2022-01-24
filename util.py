@@ -1,13 +1,19 @@
+import os
+
 import numpy as np
 import pandas as pd
 import scipy.io
+import fire
 from matplotlib import pyplot as plt
 import pickle
 from sklearn.model_selection import train_test_split
 from collections import Counter
 from tqdm import tqdm
 
-def preprocess_physionet():
+RAW_DATA_PATH = 'data/challenge2017'
+PKL_PATH = 'data/challenge2017.pkl'
+
+def preprocess_physionet(source_path, out_path):
     """
     download the raw data from https://physionet.org/content/challenge-2017/1.0.0/, 
     and put it in ../data/challenge2017/
@@ -15,24 +21,27 @@ def preprocess_physionet():
     The preprocessed dataset challenge2017.pkl can also be found at https://drive.google.com/drive/folders/1AuPxvGoyUbKcVaFmeyt3xsqj6ucWZezf
     """
     
-    # read label
-    label_df = pd.read_csv('../data/challenge2017/REFERENCE-v3.csv', header=None)
+    rel_path = lambda *x : os.path.join(source_path, *x)
+    label_df = pd.read_csv(rel_path('REFERENCE-v3.csv'), header=None)
     label = label_df.iloc[:,1].values
     print(Counter(label))
 
     # read data
     all_data = []
-    filenames = pd.read_csv('../data/challenge2017/training2017/RECORDS', header=None)
+    filenames = pd.read_csv(rel_path('training2017', 'RECORDS'), header=None)
     filenames = filenames.iloc[:,0].values
     print(filenames)
     for filename in tqdm(filenames):
-        mat = scipy.io.loadmat('../data/challenge2017/training2017/{0}.mat'.format(filename))
+        mat = scipy.io.loadmat(rel_path('training2017','{0}.mat'.format(filename)))
         mat = np.array(mat['val'])[0]
         all_data.append(mat)
     all_data = np.array(all_data)
 
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     res = {'data':all_data, 'label':label}
-    with open('../data/challenge2017/challenge2017.pkl', 'wb') as fout:
+    out_file = os.path.join(PKL_PATH)
+    print(f"Saving processed data to '{out_file}'")
+    with open(out_file, 'wb') as fout:
         pickle.dump(res, fout)
 
 def slide_and_cut(X, Y, window_size, stride, output_pid=False, datatype=4):
@@ -74,7 +83,7 @@ def read_data_physionet_2_clean_federated(m_clients, test_ratio=0.2, window_size
     """
 
     # read pkl
-    with open('../data/challenge2017/challenge2017.pkl', 'rb') as fin:
+    with open(PKL_PATH, 'rb') as fin:
         res = pickle.load(fin)
     ## scale data
     all_data = res['data']
@@ -138,7 +147,7 @@ def read_data_physionet_2_clean(window_size=3000, stride=500):
     """
 
     # read pkl
-    with open('../data/challenge2017/challenge2017.pkl', 'rb') as fin:
+    with open(PKL_PATH, 'rb') as fin:
         res = pickle.load(fin)
     ## scale data
     all_data = res['data']
@@ -185,7 +194,7 @@ def read_data_physionet_2_clean(window_size=3000, stride=500):
 def read_data_physionet_2(window_size=3000, stride=500):
 
     # read pkl
-    with open('../data/challenge2017/challenge2017.pkl', 'rb') as fin:
+    with open(PKL_PATH, 'rb') as fin:
         res = pickle.load(fin)
     ## scale data
     all_data = res['data']
@@ -228,8 +237,9 @@ def read_data_physionet_2(window_size=3000, stride=500):
 def read_data_physionet_4(window_size=3000, stride=500):
 
     # read pkl
-    with open('../data/challenge2017/challenge2017.pkl', 'rb') as fin:
+    with open(PKL_PATH, 'rb') as fin:
         res = pickle.load(fin)
+
     ## scale data
     all_data = res['data']
     for i in range(len(all_data)):
@@ -237,6 +247,7 @@ def read_data_physionet_4(window_size=3000, stride=500):
         tmp_std = np.std(tmp_data)
         tmp_mean = np.mean(tmp_data)
         all_data[i] = (tmp_data - tmp_mean) / tmp_std
+
     ## encode label
     all_label = []
     for i in res['label']:
@@ -251,7 +262,8 @@ def read_data_physionet_4(window_size=3000, stride=500):
     all_label = np.array(all_label)
 
     # split train test
-    X_train, X_test, Y_train, Y_test = train_test_split(all_data, all_label, test_size=0.1, random_state=0)
+    X_train, X_test, Y_train, Y_test = train_test_split(all_data, all_label, test_size=0.1)
+    # X_train, X_test, Y_train, Y_test = train_test_split(all_data, all_label, test_size=0.1, random_state=0)
     
     # slide and cut
     print('before: ')
@@ -274,7 +286,7 @@ def read_data_physionet_4(window_size=3000, stride=500):
 def read_data_physionet_4_with_val(window_size=3000, stride=500):
 
     # read pkl
-    with open('../data/challenge2017/challenge2017.pkl', 'rb') as fin:
+    with open(PKL_PATH, 'rb') as fin:
         res = pickle.load(fin)
     ## scale data
     all_data = res['data']
@@ -371,4 +383,6 @@ def read_data_generated(n_samples, n_length, n_channel, n_classes, verbose=False
 
 
 if __name__ == "__main__":
-    read_data_physionet_2_clean_federated(m_clients=4)
+    # fire.Fire()
+    preprocess_physionet(RAW_DATA_PATH, PKL_PATH)
+    # read_data_physionet_2_clean_federated(m_clients=4)

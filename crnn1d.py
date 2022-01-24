@@ -27,6 +27,7 @@ class MyDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
+
 class CRNN(nn.Module):
     """
     
@@ -67,7 +68,7 @@ class CRNN(nn.Module):
         self.dense = nn.Linear(out_channels, n_classes)
         
     def forward(self, x):
-
+        # print(">>>", self.cnn.device)
         self.n_channel, self.n_length = x.shape[-2], x.shape[-1]
         assert (self.n_length % self.n_len_seg == 0), "Input n_length should divided by n_len_seg"
         self.n_seg = self.n_length // self.n_len_seg
